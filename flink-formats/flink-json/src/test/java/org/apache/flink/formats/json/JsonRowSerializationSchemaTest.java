@@ -21,8 +21,6 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.types.Row;
 
-import org.junit.Test;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -30,16 +28,17 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.junit.jupiter.api.Test;
+
 import static org.apache.flink.formats.utils.SerializationSchemaMatcher.whenSerializedWith;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /** Tests for the {@link JsonRowSerializationSchema}. */
-public class JsonRowSerializationSchemaTest {
+class JsonRowSerializationSchemaTest {
 
     @Test
-    public void testRowSerialization() {
+    void testRowSerialization() {
         final TypeInformation<Row> rowSchema =
                 Types.ROW_NAMED(
                         new String[] {"f1", "f2", "f3", "f4", "f5"},
@@ -61,15 +60,13 @@ public class JsonRowSerializationSchemaTest {
         final JsonRowDeserializationSchema deserializationSchema =
                 new JsonRowDeserializationSchema.Builder(rowSchema).build();
 
-        assertThat(
-                row,
-                whenSerializedWith(serializationSchema)
+        assertThat(whenSerializedWith(serializationSchema)
                         .andDeserializedWith(deserializationSchema)
-                        .equalsTo(row));
+                        .equalsTo(row).matches(row));
     }
 
     @Test
-    public void testSerializationOfTwoRows() throws IOException {
+    void testSerializationOfTwoRows() throws IOException {
         final TypeInformation<Row> rowSchema =
                 Types.ROW_NAMED(
                         new String[] {"f1", "f2", "f3"}, Types.INT, Types.BOOLEAN, Types.STRING);
@@ -85,7 +82,8 @@ public class JsonRowSerializationSchemaTest {
                 new JsonRowDeserializationSchema.Builder(rowSchema).build();
 
         byte[] bytes = serializationSchema.serialize(row1);
-        assertEquals(row1, deserializationSchema.deserialize(bytes));
+//        assertEquals(row1, deserializationSchema.deserialize(bytes));
+        assertThat(deserializationSchema.deserialize(bytes)).isEqualTo(row1);
 
         final Row row2 = new Row(3);
         row2.setField(0, 10);
@@ -93,11 +91,11 @@ public class JsonRowSerializationSchemaTest {
         row2.setField(2, "newStr");
 
         bytes = serializationSchema.serialize(row2);
-        assertEquals(row2, deserializationSchema.deserialize(bytes));
+        assertThat(deserializationSchema.deserialize(bytes)).isEqualTo(row2);
     }
 
     @Test
-    public void testMultiRowsWithNullValues() throws IOException {
+    void testMultiRowsWithNullValues() throws IOException {
         String[] jsons =
                 new String[] {
                     "{\"svt\":\"2020-02-24T12:58:09.209+0800\"}",
@@ -129,12 +127,12 @@ public class JsonRowSerializationSchemaTest {
             String json = jsons[i];
             Row row = deserializationSchema.deserialize(json.getBytes());
             String result = new String(serializationSchema.serialize(row));
-            assertEquals(expected[i], result);
+            assertThat(result).isEqualTo(expected[i]);
         }
     }
 
     @Test
-    public void testNestedSchema() {
+    void testNestedSchema() {
         final TypeInformation<Row> rowSchema =
                 Types.ROW_NAMED(
                         new String[] {"f1", "f2", "f3"},
@@ -155,15 +153,13 @@ public class JsonRowSerializationSchemaTest {
         final JsonRowDeserializationSchema deserializationSchema =
                 new JsonRowDeserializationSchema.Builder(rowSchema).build();
 
-        assertThat(
-                row,
-                whenSerializedWith(serializationSchema)
-                        .andDeserializedWith(deserializationSchema)
-                        .equalsTo(row));
+        assertThat(whenSerializedWith(serializationSchema)
+                .andDeserializedWith(deserializationSchema)
+                .equalsTo(row).matches(row));
     }
 
     @Test
-    public void testSerializeRowWithInvalidNumberOfFields() {
+    void testSerializeRowWithInvalidNumberOfFields() {
         final TypeInformation<Row> rowSchema =
                 Types.ROW_NAMED(
                         new String[] {"f1", "f2", "f3"}, Types.INT, Types.BOOLEAN, Types.STRING);
@@ -173,14 +169,13 @@ public class JsonRowSerializationSchemaTest {
 
         final JsonRowSerializationSchema serializationSchema =
                 new JsonRowSerializationSchema.Builder(rowSchema).build();
-        assertThat(
-                row,
-                whenSerializedWith(serializationSchema)
-                        .failsWithException(instanceOf(RuntimeException.class)));
+
+        assertThat(whenSerializedWith(serializationSchema)
+                .failsWithException(instanceOf(RuntimeException.class)));
     }
 
     @Test
-    public void testSchema() {
+    void testSchema() {
         final TypeInformation<Row> rowSchema =
                 JsonRowSchemaConverter.convert(
                         "{"
@@ -235,10 +230,8 @@ public class JsonRowSerializationSchemaTest {
         final JsonRowDeserializationSchema deserializationSchema =
                 new JsonRowDeserializationSchema.Builder(rowSchema).build();
 
-        assertThat(
-                row,
-                whenSerializedWith(serializationSchema)
-                        .andDeserializedWith(deserializationSchema)
-                        .equalsTo(row));
+        assertThat(whenSerializedWith(serializationSchema)
+                .andDeserializedWith(deserializationSchema)
+                .equalsTo(row).matches(row));
     }
 }
